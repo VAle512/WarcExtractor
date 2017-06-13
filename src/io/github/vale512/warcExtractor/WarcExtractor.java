@@ -36,12 +36,12 @@ import io.github.vale512.warcExtractor.util.CommandLineParser;
 
 public class WarcExtractor {
 
-	public int extract(File warcFile,String outputDir) {
-		DataInputStream inStream = this.gzipStream(warcFile);
+	public int extract(DataInputStream inputStream,String outputDir) {
 		WARCRecord record;
 		int i = 0;
+		System.out.println("Extraction in progress, please wait...");
 		try {
-			while ((record = WARCRecord.readNextWarcRecord(inStream)) != null) {
+			while ((record = WARCRecord.readNextWarcRecord(inputStream)) != null) {
 				File file = new File(outputDir, i+".html");
 				file.createNewFile();
 				FileWriter writer = new FileWriter(file);
@@ -50,7 +50,7 @@ public class WarcExtractor {
 				i++;
 			}
 		} catch (IOException e) {
-			System.out.println("Error while reading "+warcFile.getName());
+			System.out.println("Error while reading WARC file!");
 			e.printStackTrace();
 		}
 		return i;
@@ -65,7 +65,7 @@ public class WarcExtractor {
 		return null;
 	}
 
-	private static void createOutputDir(String path){
+	private void createOutputDir(String path){
 		File directory = new File(path);
 		if(directory.exists()) {
 			System.out.println("[ERROR]Directory "+path+" already exists.");
@@ -74,18 +74,22 @@ public class WarcExtractor {
 		directory.mkdirs();
 	}
 	
-	public static void main(String[] argc) {
-		Map<String,String> inputArgs = CommandLineParser.parse(argc);
-		File inputFile = new File(inputArgs.get(CommandLineParser.INPUT_FILE));
+	private int run(File inputFile, String outputPath) {
 		if(!inputFile.exists()) {
 			System.out.println("[ERROR]File "+inputFile.getName()+" doesn't exist.");
 			System.exit(1);
 		}
+		this.createOutputDir(outputPath);
+		DataInputStream inputStream = this.gzipStream(inputFile);
+		return this.extract(inputStream, outputPath);
+	}
+	
+	public static void main(String[] argc) {
+		Map<String,String> inputArgs = CommandLineParser.parse(argc);
+		File inputFile = new File(inputArgs.get(CommandLineParser.INPUT_FILE));
 		String outputPath = inputArgs.get(CommandLineParser.OUTPUT_DIR);
-		createOutputDir(outputPath);
-		int extractedFiles = new WarcExtractor().extract(inputFile, outputPath);
+		int extractedFiles = new WarcExtractor().run(inputFile, outputPath);
 		System.out.println("Files extracted: "+extractedFiles);
 	}
 
 }
-
