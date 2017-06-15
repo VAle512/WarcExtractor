@@ -56,11 +56,21 @@ public class WarcExtractor {
 		return i;
 	}
 
-	private DataInputStream gzipStream(File file) {
-		try {
+	private DataInputStream createInputStream(String path) throws IOException {
+		File file = new File(path);
+		if(!file.exists()) {
+			System.out.println("[ERROR]File "+file.getName()+" doesn't exist.");
+			System.exit(1);
+		}
+		String extension = path.substring(path.lastIndexOf("."));
+		switch (extension) {
+		case ".gz":
 			return new DataInputStream(new GZIPInputStream(new FileInputStream(file)));
-		} catch (IOException e) {
-			e.printStackTrace();
+		case ".warc":
+			return new DataInputStream(new FileInputStream(file));
+		default:
+			System.out.println("[ERROR]File extension must be .warc or .warc.gz");
+			System.exit(1);
 		}
 		return null;
 	}
@@ -73,22 +83,24 @@ public class WarcExtractor {
 		}
 		directory.mkdirs();
 	}
-	
-	private int run(File inputFile, String outputPath) {
-		if(!inputFile.exists()) {
-			System.out.println("[ERROR]File "+inputFile.getName()+" doesn't exist.");
+
+	private int run(String inputFilePath, String outputPath) {
+		DataInputStream inputStream = null;
+		try {
+			inputStream = this.createInputStream(inputFilePath);
+		} catch (IOException e) {
+			e.printStackTrace();
 			System.exit(1);
 		}
 		this.createOutputDir(outputPath);
-		DataInputStream inputStream = this.gzipStream(inputFile);
 		return this.extract(inputStream, outputPath);
 	}
-	
+
 	public static void main(String[] argc) {
 		Map<String,String> inputArgs = CommandLineParser.parse(argc);
-		File inputFile = new File(inputArgs.get(CommandLineParser.INPUT_FILE));
+		String inputFilePath = inputArgs.get(CommandLineParser.INPUT_FILE);
 		String outputPath = inputArgs.get(CommandLineParser.OUTPUT_DIR);
-		int extractedFiles = new WarcExtractor().run(inputFile, outputPath);
+		int extractedFiles = new WarcExtractor().run(inputFilePath, outputPath);
 		System.out.println("Files extracted: "+extractedFiles);
 	}
 
