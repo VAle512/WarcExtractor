@@ -23,6 +23,7 @@ package io.github.vale512.warcExtractor;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Map;
@@ -30,28 +31,25 @@ import java.util.zip.GZIPInputStream;
 
 import org.lemurproject.galago.core.parse.WARCRecord;
 
+import io.github.vale512.warcExtractor.exceptions.DirectoryAlreadyExistsException;
+import io.github.vale512.warcExtractor.exceptions.FileFormatException;
 import io.github.vale512.warcExtractor.util.CommandLineParser;
 
 //TODO Find a way to clean HTML from WARC information.
 
 public class WarcExtractor {
 
-	public int extract(DataInputStream inputStream,String outputDir) {
+	public int extract(DataInputStream inputStream,String outputDir) throws IOException {
 		WARCRecord record;
 		int i = 0;
 		System.out.println("Extraction in progress, please wait...");
-		try {
-			while ((record = WARCRecord.readNextWarcRecord(inputStream)) != null) {
-				File file = new File(outputDir, i+".html");
-				file.createNewFile();
-				FileWriter writer = new FileWriter(file);
-				writer.write(record.getContentUTF8());
-				writer.close();
-				i++;
-			}
-		} catch (IOException e) {
-			System.out.println("Error while reading WARC file!");
-			e.printStackTrace();
+		while ((record = WARCRecord.readNextWarcRecord(inputStream)) != null) {
+			File file = new File(outputDir, i+".html");
+			file.createNewFile();
+			FileWriter writer = new FileWriter(file);
+			writer.write(record.getContentUTF8());
+			writer.close();
+			i++;
 		}
 		return i;
 	}
@@ -59,8 +57,7 @@ public class WarcExtractor {
 	private DataInputStream createInputStream(String path) throws IOException {
 		File file = new File(path);
 		if(!file.exists()) {
-			System.out.println("[ERROR]File "+file.getName()+" doesn't exist.");
-			System.exit(1);
+			throw new FileNotFoundException("File "+file.getName()+" doesn't exist.");
 		}
 		String extension = path.substring(path.lastIndexOf("."));
 		switch (extension) {
@@ -69,38 +66,33 @@ public class WarcExtractor {
 		case ".warc":
 			return new DataInputStream(new FileInputStream(file));
 		default:
-			System.out.println("[ERROR]File extension must be .warc or .warc.gz");
-			System.exit(1);
+			throw new FileFormatException("File extension must be .warc or .warc.gz");
 		}
-		return null;
 	}
 
-	private void createOutputDir(String path){
+	private void createOutputDir(String path) throws DirectoryAlreadyExistsException{
 		File directory = new File(path);
-		if(directory.exists()) {
-			System.out.println("[ERROR]Directory "+path+" already exists.");
-			System.exit(1);
-		}
+		if(directory.exists())
+			throw new DirectoryAlreadyExistsException("Directory "+directory.getName()+" alreay exists.");
 		directory.mkdirs();
 	}
 
-	private int run(String inputFilePath, String outputPath) {
-		DataInputStream inputStream = null;
-		try {
-			inputStream = this.createInputStream(inputFilePath);
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.exit(1);
-		}
+	private int run(String inputFilePath, String outputPath) throws IOException {
+		DataInputStream inputStream = this.createInputStream(inputFilePath);
 		this.createOutputDir(outputPath);
 		return this.extract(inputStream, outputPath);
 	}
 
-	public static void main(String[] argc) {
+	public static void main(String[] argc)  {
 		Map<String,String> inputArgs = CommandLineParser.parse(argc);
 		String inputFilePath = inputArgs.get(CommandLineParser.INPUT_FILE);
 		String outputPath = inputArgs.get(CommandLineParser.OUTPUT_DIR);
-		int extractedFiles = new WarcExtractor().run(inputFilePath, outputPath);
+		int extractedFiles = 0;
+		try {
+			extractedFiles = new WarcExtractor().run(inputFilePath, outputPath);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		System.out.println("Files extracted: "+extractedFiles);
 	}
 
