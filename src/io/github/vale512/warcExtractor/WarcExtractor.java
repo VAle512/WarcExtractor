@@ -20,6 +20,7 @@
  */
 package io.github.vale512.warcExtractor;
 
+import java.io.BufferedWriter;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -46,7 +47,7 @@ public class WarcExtractor {
 		while ((record = WARCRecord.readNextWarcRecord(inputStream)) != null) {
 			File file = new File(outputDir, i+".html");
 			file.createNewFile();
-			FileWriter writer = new FileWriter(file);
+			BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 			writer.write(record.getContentUTF8());
 			writer.close();
 			i++;

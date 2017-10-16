@@ -59,15 +59,15 @@ public class CommandLineParser {
 		}
 
 		if (line.hasOption(HELP_OPTION.getLongOpt()))
-			ptintUsage(OPTIONS);
+			printUsage(OPTIONS);
 		if (!line.hasOption(INPUT_FILE_OPTION.getLongOpt())) {
 			System.err.println("You must supply -i");
-			ptintUsage(OPTIONS);
+			printUsage(OPTIONS);
 			System.exit(1);
 		}
 		if (!line.hasOption(OUTPUT_DIR_OPTION.getLongOpt())) {
 			System.err.println("You must supply -o");
-			ptintUsage(OPTIONS);
+			printUsage(OPTIONS);
 			System.exit(1);
 		}
 
@@ -77,7 +77,7 @@ public class CommandLineParser {
 		return args;
 	}
 
-	private static void ptintUsage(Options options) {
+	private static void printUsage(Options options) {
 		new HelpFormatter().printHelp("Warc Extractor", options, true);
 		System.exit(0);
 	}
